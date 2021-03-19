@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Query, HTTPException, Response
+from fastapi.responses import JSONResponse
 from typing import Optional
 
 from api.utils import random_wait
@@ -27,14 +28,10 @@ def get_kitties(
     )
 ):
     if kitty_id is None:
-        return random_wait(Response(status_code=200, content=str(mock_db)))
-    try:
-        return random_wait(Response(status_code=200, content=str(mock_db[kitty_id])))
-    except IndexError:
-        return HTTPException(
-            status_code=404,
-            detail="Kitty not found, try with another Id"
-        )
+        return random_wait(JSONResponse(status_code=200, content=mock_db))
+    if kitty_id >= len(mock_db):
+        raise HTTPException(status_code=404, detail="Kitty not found, try with another Id")
+    return random_wait(JSONResponse(status_code=200, content=mock_db[kitty_id]))
 
 
 @app.post("/api/add-kitty")
@@ -53,7 +50,7 @@ def add_kitty(
         "name": name
     }
     mock_db.append(new)
-    return random_wait(Response(status_code=200, content=str(new)))
+    return random_wait(JSONResponse(status_code=200, content=str(new)))
 
 
 @app.put("/api/update-kitty")
@@ -71,13 +68,9 @@ def update_kitty(
         max_length=150
     )
 ):
-    try:
-        kitty = mock_db[kitty_id]
-    except IndexError:
-        return HTTPException(
-            status_code=404,
-            detail="Kitty not found, try with another Id"
-        )
+    if kitty_id >= len(mock_db):
+        raise HTTPException(status_code=404, detail="Kitty not found, try with another Id")
+    kitty = mock_db[kitty_id]
     if new_name is None:
         return random_wait(Response(status_code=200))
     new = {
@@ -85,7 +78,7 @@ def update_kitty(
         "name": kitty["name"] if new_name is None else new_name,
     }
     mock_db[kitty_id] = new
-    return random_wait(Response(status_code=200, content=str(new)))
+    return random_wait(JSONResponse(status_code=200, content=new))
 
 
 @app.delete("/api/delete-kitty")
@@ -96,14 +89,10 @@ def delete_kitty(
         description="Get the kitty to be deleted"
     ),
 ):
-    try:
-        deleted = mock_db.pop(kitty_id)
-    except IndexError:
-        return HTTPException(
-            status_code=404,
-            detail="Kitty not found, try with another Id"
-        )
+    if kitty_id >= len(mock_db):
+        raise HTTPException(status_code=404, detail="Kitty not found, try with another Id")
+    deleted = mock_db[kitty_id]
     # rearrange Ids
     for idx, d in enumerate(mock_db):
         d["id"] = idx
-    return random_wait(Response(status_code=200, content=str(deleted)))
+    return random_wait(JSONResponse(status_code=200, content=deleted))
