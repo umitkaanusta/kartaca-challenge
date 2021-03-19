@@ -86,7 +86,7 @@ def delete_kitty(
 ):
     if kitty_id >= len(mock_db):
         raise HTTPException(status_code=404, detail="Kitty not found, try with another Id")
-    deleted = mock_db[kitty_id]
+    deleted = mock_db.pop(kitty_id)
     # rearrange Ids
     for idx, d in enumerate(mock_db):
         d["id"] = idx
