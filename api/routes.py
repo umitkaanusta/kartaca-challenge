@@ -70,15 +70,10 @@ def update_kitty(
 ):
     if kitty_id >= len(mock_db):
         raise HTTPException(status_code=404, detail="Kitty not found, try with another Id")
-    kitty = mock_db[kitty_id]
     if new_name is None:
         return random_wait(JSONResponse(status_code=200))
-    new = {
-        "id": kitty_id,
-        "name": kitty["name"] if new_name is None else new_name,
-    }
-    mock_db[kitty_id] = new
-    return random_wait(JSONResponse(status_code=200, content=new))
+    mock_db[kitty_id]["name"] = new_name
+    return random_wait(JSONResponse(status_code=200, content=mock_db[kitty_id]))
 
 
 @app.delete("/api/delete-kitty")
