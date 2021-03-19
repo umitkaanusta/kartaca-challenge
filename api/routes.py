@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Query, HTTPException, Response
+from fastapi import FastAPI, Query, HTTPException
 from fastapi.responses import JSONResponse
 from typing import Optional
 
@@ -60,7 +60,7 @@ def update_kitty(
         title="Kitty Id",
         description="Get the kitty to be updated, by its Id"
     ),
-    new_name: str = Query(
+    new_name: Optional[str] = Query(
         default=None,
         title="New Name",
         description="New name of the kitty",
@@ -72,7 +72,7 @@ def update_kitty(
         raise HTTPException(status_code=404, detail="Kitty not found, try with another Id")
     kitty = mock_db[kitty_id]
     if new_name is None:
-        return random_wait(Response(status_code=200))
+        return random_wait(JSONResponse(status_code=200))
     new = {
         "id": kitty_id,
         "name": kitty["name"] if new_name is None else new_name,
