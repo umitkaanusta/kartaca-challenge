@@ -50,7 +50,7 @@ def add_kitty(
         "name": name
     }
     mock_db.append(new)
-    return random_wait(JSONResponse(status_code=200, content=str(new)))
+    return random_wait(JSONResponse(status_code=200, content=new))
 
 
 @app.put("/api/update-kitty")
