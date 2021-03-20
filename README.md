@@ -14,7 +14,13 @@ Key: `gAAAAABgUNOg5Rgr5DcgAujfKVukSq8yyWxrJLNOrwivY6EHHs4yUyJsf23-MwvrgkBdBrPu7M
 - Create a real-time dashboard, each request method has its color
 
 ## Installation and Running
-will update here
+- Make sure Docker and docker-compose are installed in your environment
+- Open the terminal
+- Download the repo with `git clone`
+- `cd` to the location where the repo is installed
+- Run `docker-compose up`
+    - The REST API runs on `localhost:5000`
+    - See the REST API reference to learn how to use the API
 
 ## REST API Reference
 
