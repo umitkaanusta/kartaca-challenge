@@ -1,0 +1,33 @@
+version: "3.9"
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+      - zookeeper
+      - kafka
+  db:
+    image: postgres:13.2
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
+    restart: always
+    environment:
+      - POSTGRES_PASSWORD=postgres
+  zookeeper:
+    image: wurstmeister/zookeeper
+    ports:
+      - "2181:2181"
+  kafka:
+    image: wurstmeister/kafka
+    ports:
+      - "9092:9092"
+    volumes:
+      - ./data/kafka:/var/lib/kafka/data
+    restart: always
+    environment:
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_ADVERTISED_HOST_NAME=localhost
