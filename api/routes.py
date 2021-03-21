@@ -1,22 +1,24 @@
-from fastapi import FastAPI, Query, HTTPException
+from fastapi import FastAPI, Query, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from typing import Optional
+from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 
-from api.utils import random_wait
+from api.utils import random_wait, kitty_to_json
+from api import crud, models
+from api.database import engine, SessionLocal
+
+models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
 
-mock_db = [
-    {
-        "id": 0,
-        "name": "mock"
-    },
-    {
-        "id": 1,
-        "name": "tabby"
-    }
-]
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 
 @app.get("/api/kitties")
@@ -24,14 +26,17 @@ def get_kitties(
     kitty_id: Optional[int] = Query(
         default=None,
         title="Kitty Id",
-        description="Get an individual kitty by its Id. Get all kitties if not specified."
-    )
+        description="Get an individual kitty by its Id. Get all kitties if id is not specified."
+    ),
+    db: Session = Depends(get_db)
 ):
     if kitty_id is None:
-        return random_wait(JSONResponse(status_code=200, content=mock_db))
-    if kitty_id >= len(mock_db):
+        kitties = [kitty_to_json(k) for k in crud.read_kitties(db)]
+        return random_wait(JSONResponse(status_code=200, content=kitties))
+    kitty = kitty_to_json(crud.read_kitty(db, kitty_id))
+    if kitty is None:
         raise HTTPException(status_code=404, detail="Kitty not found, try with another Id")
-    return random_wait(JSONResponse(status_code=200, content=mock_db[kitty_id]))
+    return random_wait(JSONResponse(status_code=200, content=kitty))
 
 
 @app.post("/api/add-kitty")
@@ -42,14 +47,10 @@ def add_kitty(
         description="Name of the kitty",
         min_length=1,
         max_length=150,
-    )
+    ),
+    db: Session = Depends(get_db)
 ):
-    new_id = len(mock_db)
-    new = {
-        "id": new_id,
-        "name": name
-    }
-    mock_db.append(new)
+    new = kitty_to_json(crud.create_kitty(db, name))
     return random_wait(JSONResponse(status_code=200, content=new))
 
 
@@ -66,14 +67,15 @@ def update_kitty(
         description="New name of the kitty",
         min_length=1,
         max_length=150
-    )
+    ),
+    db: Session = Depends(get_db)
 ):
-    if kitty_id >= len(mock_db):
-        raise HTTPException(status_code=404, detail="Kitty not found, try with another Id")
     if new_name is None:
         return random_wait(JSONResponse(status_code=200))
-    mock_db[kitty_id]["name"] = new_name
-    return random_wait(JSONResponse(status_code=200, content=mock_db[kitty_id]))
+    if crud.read_kitty(db, kitty_id) is None:
+        raise HTTPException(status_code=404, detail="Kitty not found, try with another Id")
+    updated = kitty_to_json(crud.update_kitty(db, kitty_id, new_name))
+    return random_wait(JSONResponse(status_code=200, content=updated))
 
 
 @app.delete("/api/delete-kitty")
@@ -83,11 +85,9 @@ def delete_kitty(
         title="Kitty Id",
         description="Get the kitty to be deleted"
     ),
+    db: Session = Depends(get_db)
 ):
-    if kitty_id >= len(mock_db):
+    if crud.read_kitty(db, kitty_id) is None:
         raise HTTPException(status_code=404, detail="Kitty not found, try with another Id")
-    deleted = mock_db.pop(kitty_id)
-    # rearrange Ids
-    for idx, d in enumerate(mock_db):
-        d["id"] = idx
+    deleted = kitty_to_json(crud.delete_kitty(db, kitty_id))
     return random_wait(JSONResponse(status_code=200, content=deleted))

@@ -7,3 +7,7 @@ def random_wait(resp):
     # between 0-3 secs
     sleep(random() * 3)
     return resp
+
+
+def kitty_to_json(kitty):
+    return {"id": kitty.id, "name": kitty.name}
