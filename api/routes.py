@@ -1,8 +1,10 @@
-from fastapi import FastAPI, Query, HTTPException, Depends
+from fastapi import FastAPI, Query, HTTPException, Depends, Request
 from fastapi.responses import JSONResponse
+from loguru import logger
 from typing import Optional
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
+import time
 
 from api.utils import random_wait, kitty_to_json
 from api import crud, models
@@ -10,7 +12,20 @@ from api.database import engine, SessionLocal
 
 models.Base.metadata.create_all(bind=engine)
 
+logger.add("kitties.log", format="{message}", level="INFO")
+
 app = FastAPI()
+
+
+@app.middleware("http")
+def log(request: Request, call_next):
+    req_time = time.time()
+    resp = random_wait(call_next(request))
+    resp_time = time.time() - req_time
+    if "/api/" in str(request.url):
+        # only log requests coming to the kitties api
+        logger.info(f"{request.method}, {int(resp_time * 1000)}, {int(req_time)}")
+    return resp
 
 
 def get_db():
@@ -32,11 +47,11 @@ def get_kitties(
 ):
     if kitty_id is None:
         kitties = [kitty_to_json(k) for k in crud.read_kitties(db)]
-        return random_wait(JSONResponse(status_code=200, content=kitties))
+        return JSONResponse(status_code=200, content=kitties)
     kitty = kitty_to_json(crud.read_kitty(db, kitty_id))
     if kitty is None:
         raise HTTPException(status_code=404, detail="Kitty not found, try with another Id")
-    return random_wait(JSONResponse(status_code=200, content=kitty))
+    return JSONResponse(status_code=200, content=kitty)
 
 
 @app.post("/api/add-kitty")
@@ -51,7 +66,7 @@ def add_kitty(
     db: Session = Depends(get_db)
 ):
     new = kitty_to_json(crud.create_kitty(db, name))
-    return random_wait(JSONResponse(status_code=200, content=new))
+    return JSONResponse(status_code=200, content=new)
 
 
 @app.put("/api/update-kitty")
@@ -71,11 +86,11 @@ def update_kitty(
     db: Session = Depends(get_db)
 ):
     if new_name is None:
-        return random_wait(JSONResponse(status_code=200))
+        return JSONResponse(status_code=200)
     if crud.read_kitty(db, kitty_id) is None:
         raise HTTPException(status_code=404, detail="Kitty not found, try with another Id")
     updated = kitty_to_json(crud.update_kitty(db, kitty_id, new_name))
-    return random_wait(JSONResponse(status_code=200, content=updated))
+    return JSONResponse(status_code=200, content=updated)
 
 
 @app.delete("/api/delete-kitty")
@@ -90,4 +105,4 @@ def delete_kitty(
     if crud.read_kitty(db, kitty_id) is None:
         raise HTTPException(status_code=404, detail="Kitty not found, try with another Id")
     deleted = kitty_to_json(crud.delete_kitty(db, kitty_id))
-    return random_wait(JSONResponse(status_code=200, content=deleted))
+    return JSONResponse(status_code=200, content=deleted)
