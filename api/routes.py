@@ -1,12 +1,13 @@
-from fastapi import FastAPI, Query, HTTPException, Depends, Request
+from fastapi import FastAPI, BackgroundTasks, Query, HTTPException, Depends, Request
 from fastapi.responses import JSONResponse
 from loguru import logger
 from typing import Optional
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 import time
+from aiokafka import AIOKafkaProducer, AIOKafkaConsumer
 
-from api.utils import random_wait, kitty_to_json
+from api.utils import random_wait, kitty_to_json, last_log
 from api import crud, models
 from api.database import engine, SessionLocal
 
@@ -15,6 +16,17 @@ models.Base.metadata.create_all(bind=engine)
 logger.add("kitties.log", format="{message}", level="INFO")
 
 app = FastAPI()
+
+
+async def write_to_kafka():
+    # Async job that instantaneously writes logs to Kafka
+    producer = AIOKafkaProducer(bootstrap_servers=["kafka:9093"])
+    await producer.start()
+    message = bytes(last_log(), "utf-8")
+    try:
+        await producer.send_and_wait("kittylogs", message)
+    finally:
+        await producer.stop()
 
 
 @app.middleware("http")
@@ -38,13 +50,15 @@ def get_db():
 
 @app.get("/api/kitties")
 def get_kitties(
+    bg: BackgroundTasks,
     kitty_id: Optional[int] = Query(
         default=None,
         title="Kitty Id",
         description="Get an individual kitty by its Id. Get all kitties if id is not specified."
     ),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
+    bg.add_task(write_to_kafka)
     if kitty_id is None:
         kitties = [kitty_to_json(k) for k in crud.read_kitties(db)]
         return JSONResponse(status_code=200, content=kitties)
@@ -56,6 +70,7 @@ def get_kitties(
 
 @app.post("/api/add-kitty")
 def add_kitty(
+    bg: BackgroundTasks,
     name: str = Query(
         ...,
         title="Name",
@@ -65,12 +80,14 @@ def add_kitty(
     ),
     db: Session = Depends(get_db)
 ):
+    bg.add_task(write_to_kafka)
     new = kitty_to_json(crud.create_kitty(db, name))
     return JSONResponse(status_code=200, content=new)
 
 
 @app.put("/api/update-kitty")
 def update_kitty(
+    bg: BackgroundTasks,
     kitty_id: int = Query(
         ...,
         title="Kitty Id",
@@ -85,6 +102,7 @@ def update_kitty(
     ),
     db: Session = Depends(get_db)
 ):
+    bg.add_task(write_to_kafka)
     if new_name is None:
         return JSONResponse(status_code=200)
     if crud.read_kitty(db, kitty_id) is None:
@@ -95,6 +113,7 @@ def update_kitty(
 
 @app.delete("/api/delete-kitty")
 def delete_kitty(
+    bg: BackgroundTasks,
     kitty_id: int = Query(
         ...,
         title="Kitty Id",
@@ -102,6 +121,7 @@ def delete_kitty(
     ),
     db: Session = Depends(get_db)
 ):
+    bg.add_task(write_to_kafka)
     if crud.read_kitty(db, kitty_id) is None:
         raise HTTPException(status_code=404, detail="Kitty not found, try with another Id")
     deleted = kitty_to_json(crud.delete_kitty(db, kitty_id))
