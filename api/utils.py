@@ -22,7 +22,7 @@ def last_log():
         return lines[-2] if lines[-1] == "" else lines[-1]
 
 
-def process_message(_message: bytes) -> tuple[str, int, int]:
+def process_message(_message: bytes):
     message = _message.decode("utf-8")
     method, resp_time, timestamp = message.split(",")
     return method, int(resp_time), int(timestamp)
