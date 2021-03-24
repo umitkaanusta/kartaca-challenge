@@ -1,4 +1,4 @@
-from time import sleep
+from time import time, sleep
 from random import random
 
 
@@ -11,3 +11,12 @@ def random_wait(resp):
 
 def kitty_to_json(kitty):
     return {"id": kitty.id, "name": kitty.name}
+
+
+def last_log():
+    # returns the last message from the log file
+    import os
+    with open("kitties.log", "r") as logs:
+        lines = logs.readlines()
+    if lines:
+        return lines[-2] if lines[-1] == "" else lines[-1]
