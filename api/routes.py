@@ -7,8 +7,8 @@ from sqlalchemy.exc import IntegrityError
 import time
 from aiokafka import AIOKafkaProducer, AIOKafkaConsumer
 
-from api.utils import random_wait, kitty_to_json, last_log
-from api import crud, models
+from api.utils import random_wait, kitty_to_json, last_log, process_message
+from api import crud, kittylogs_crud, models
 from api.database import engine, SessionLocal
 
 models.Base.metadata.create_all(bind=engine)
@@ -27,6 +27,21 @@ async def write_to_kafka():
         await producer.send_and_wait("kittylogs", message)
     finally:
         await producer.stop()
+
+
+async def kafka_msg_to_db(db):
+    consumer = AIOKafkaConsumer(
+        "kittylogs",
+        group_id="kittygroup",
+        bootstrap_servers=["kafka:9093"]
+    )
+    await consumer.start()
+    try:
+        async for msg in consumer:
+            method, resp_time, timestamp = process_message(msg.value)
+            kittylogs_crud.create_log(db, method, resp_time, timestamp)
+    finally:
+        await consumer.stop()
 
 
 @app.middleware("http")
@@ -59,6 +74,7 @@ def get_kitties(
     db: Session = Depends(get_db),
 ):
     bg.add_task(write_to_kafka)
+    bg.add_task(kafka_msg_to_db, db)
     if kitty_id is None:
         kitties = [kitty_to_json(k) for k in crud.read_kitties(db)]
         return JSONResponse(status_code=200, content=kitties)
@@ -81,6 +97,7 @@ def add_kitty(
     db: Session = Depends(get_db)
 ):
     bg.add_task(write_to_kafka)
+    bg.add_task(kafka_msg_to_db, db)
     new = kitty_to_json(crud.create_kitty(db, name))
     return JSONResponse(status_code=200, content=new)
 
@@ -103,6 +120,7 @@ def update_kitty(
     db: Session = Depends(get_db)
 ):
     bg.add_task(write_to_kafka)
+    bg.add_task(kafka_msg_to_db, db)
     if new_name is None:
         return JSONResponse(status_code=200)
     if crud.read_kitty(db, kitty_id) is None:
@@ -122,7 +140,20 @@ def delete_kitty(
     db: Session = Depends(get_db)
 ):
     bg.add_task(write_to_kafka)
+    bg.add_task(kafka_msg_to_db, db)
     if crud.read_kitty(db, kitty_id) is None:
         raise HTTPException(status_code=404, detail="Kitty not found, try with another Id")
     deleted = kitty_to_json(crud.delete_kitty(db, kitty_id))
     return JSONResponse(status_code=200, content=deleted)
+
+
+@app.get("/logs")
+def get_logs(
+    db: Session = Depends(get_db),
+):
+    # endpoint for e2e tests
+    content = kittylogs_crud.read_logs(db)
+    content = [{"method": log_.method,
+                "response_time": log_.response_time,
+                "timestamp": log_.timestamp} for log_ in content]
+    return JSONResponse(status_code=200, content=content)
