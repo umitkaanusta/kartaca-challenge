@@ -19,9 +19,16 @@ Key: `gAAAAABgUNOg5Rgr5DcgAujfKVukSq8yyWxrJLNOrwivY6EHHs4yUyJsf23-MwvrgkBdBrPu7M
 - Download the repo with `git clone`
 - `cd` to the location where the repo is installed
 - Run `docker-compose up`
-    - If you encounter any errors with that, try `docker-compose up --force-recreate --build`
-    - The REST API runs on `localhost:5000`
+    - The REST API runs on `http://localhost:5000`
     - See the REST API reference to learn how to use the API
+    
+### What if I encounter an error?
+Run the following with the given order:
+- `docker volume prune`
+- `docker container prune`
+- `docker builder prune`
+- `docker-compose down -v`
+- `docker-compose up --force-recreate --build`
 
 ## REST API Reference
 
