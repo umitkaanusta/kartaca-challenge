@@ -18,9 +18,9 @@ datasources:
    # <int> org id. will default to orgId 1 if not specified
    orgId: 1
    # <string> url
-   url: http://localhost:5432
+   url: db:5432
    # <string> database password, if used
-   password:
+   password: postgres
    # <string> database user, if used
    user: postgres
    # <string> database name, if used
