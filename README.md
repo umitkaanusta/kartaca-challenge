@@ -18,9 +18,11 @@ Key: `gAAAAABgYkuT19iuw0CrEYfn3w28zHMwlcln1KxI_-FVBBbzAT6qK3aYQ8zCeSeinSEOY7KLoj
 - Open the terminal
 - Download the repo with `git clone`
 - `cd` to the location where the repo is installed
+- To check the script to deobfuscate the project spec: Run `scripts/decode_spec.py`
 - Run `docker-compose up`
     - The REST API runs on `http://localhost:5000`
     - See the REST API reference to learn how to use the API
+    - The Grafana dashboard runs on `http//localhost:3000`
     
 ### What if I encounter an error?
 Run the following with the given order:
