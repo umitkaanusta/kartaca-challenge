@@ -38,3 +38,11 @@ Run the following with the given order:
 | `/api/add-kitty` | **POST** | Create a kitty with its name | `name: str` |
 | `/api/update-kitty` | **PUT** | Rename a kitty | `kitty_id: int, new_name: Optional[str]` |
 | `/api/delete-kitty` | **DELETE** | Delete a kitty by its Id | `kitty_id: int` |
+
+**Q:** Why do POST and PUT endpoints have query parameters `name` and `new_name`?
+
+**A:** As said in RFC 3986, HTTP query strings as an URI part works as a non-hierarchical
+way of locating a resource. The query parameters `name` and `new_name` do not locate a resource. 
+They are there as a quick solution to the requirement *POST and PUT endpoints should be able to accept requests 
+with an empty body* in the hiring challenge specification.
+
