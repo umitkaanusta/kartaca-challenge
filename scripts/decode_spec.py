@@ -29,7 +29,7 @@ def main():
     sorted_dict = sorted(files_dict.items(), key=lambda x: x[1])
     sorted_filenames = [pair[0] for pair in sorted_dict]
     content = read_binaries(sorted_filenames)
-    with open("project_spec.txt", "w") as f:
+    with open("project_spec.txt", "w", encoding="utf-8") as f:
         f.write(content)
 
 
