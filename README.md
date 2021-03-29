@@ -46,3 +46,8 @@ way of locating a resource. The query parameters `name` and `new_name` do not lo
 They are there as a quick solution to the requirement *POST and PUT endpoints should be able to accept requests 
 with an empty body* in the hiring challenge specification.
 
+## Other Endpoints
+| Endpoint | Request Method | Description |
+| ------------ | -------------- | ----------- |
+| `localhost:5000/logs` |  **GET** | See all records in the Postgres table `kittylogs`| 
+| `localhost:3000` | **GET** |  See the real-time Grafana dashboard
