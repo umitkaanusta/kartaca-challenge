@@ -14,7 +14,7 @@ services:
 
   db:
     image: postgres:13.2
-    restart: always
+    restart: on-failure
     environment:
       - POSTGRES_USERNAME=postgres
       - POSTGRES_PASSWORD=postgres
@@ -39,7 +39,7 @@ services:
     hostname: kafka
     volumes:
       - ./data/kafka:/var/lib/kafka/data
-    restart: always
+    restart: on-failure
     environment:
       KAFKA_ADVERTISED_HOST_NAME: kafka
       KAFKA_ADVERTISED_PORT: "9093"
