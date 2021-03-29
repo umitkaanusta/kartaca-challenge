@@ -31,6 +31,7 @@ Run the following with the given order:
 - `docker builder prune`
 - `docker-compose down -v`
 - `docker-compose up --force-recreate --build`
+**Still getting an error?** - Ctrl+C and Run `docker-compose up --force-recreate --build` again
 
 ## REST API Reference
 
